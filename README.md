@@ -70,7 +70,8 @@ cd build
 ```
 nteFishing/
 ├── src/                     # 源代码
-│   ├── main.cpp             # 主程序（业务逻辑 + 主循环状态机）
+│   ├── main.cpp             # 主程序（主循环状态机 + 业务逻辑）
+│   ├── image_matcher.h      # 图像匹配器（屏幕截图 + OpenCV 模板匹配）
 │   ├── follower.h           # 自适应指针跟随器（死区判断 + 速度校准 + 动态按键时长）
 │   └── interception_driver.h  # Interception 驱动封装（内核 HID 注入）
 ├── img/                     # 模板图像
@@ -99,7 +100,7 @@ nteFishing/
 
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
-| `kMatchThreshold` | 0.80 | 模板匹配置信度阈值（`main.cpp`，TM_CCOEFF_NORMED） |
+| `kMatchThreshold` | 0.80 | 模板匹配置信度阈值（`image_matcher.h`，TM_CCOEFF_NORMED） |
 | `kDeadZone` | 50 | 指针到目标距离小于此像素数不按键（`follower.h`） |
 | `kCalibDuration` | 0.1 | 首次移动校准按键时长，秒（`follower.h`） |
 | `kMinDuration` | 0.05 | 单次按键最小时长，秒（`follower.h`） |

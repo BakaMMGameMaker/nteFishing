@@ -1,22 +1,21 @@
 // Interception 驱动封装（内核 HID 层注入，绕过 UE5 RawInput）
 //
 // 包含：
-//   - Interception 输入事件类型定义
 //   - InterceptionDriver 类（动态加载 interception.dll）
 //   - 全局驱动实例声明
-//   - 高层输入模拟函数（Click / PressFor / WaitFor）
+//
+// Interception 原始类型定义（enum/struct/函数指针）封装在匿名 namespace 中，
+// 仅服务于 InterceptionDriver 内部实现，外界无需知晓。
 
 #pragma once
 
 #include <windows.h>
 
-#include <chrono>
-#include <thread>
-#include <unordered_map>
+// ============================================================
+// 匿名 namespace：Interception 驱动内部类型（匹配 interception.h）
+// ============================================================
 
-// ============================================================
-// Interception 驱动类型定义（匹配 interception.h）
-// ============================================================
+namespace {
 
 /// 按键状态
 enum InterceptionKeyState {
@@ -51,14 +50,16 @@ struct InterceptionMouseStroke {
 constexpr int INTERCEPTION_KEYBOARD_ID = 1;   // INTERCEPTION_KEYBOARD(0)
 constexpr int INTERCEPTION_MOUSE_ID    = 11;  // INTERCEPTION_MOUSE(0)
 
-// ============================================================
-// InterceptionDriver 类
-// ============================================================
-
-// Interception DLL 函数指针类型
+/// Interception DLL 函数指针类型
 typedef void* (*PfnInterceptionCreateContext)();
 typedef void  (*PfnInterceptionDestroyContext)(void*);
 typedef int   (*PfnInterceptionSend)(void*, int, const void*, unsigned int);
+
+} // anonymous namespace
+
+// ============================================================
+// InterceptionDriver 类
+// ============================================================
 
 /// 动态加载 interception.dll，封装内核级 HID 输入注入
 class InterceptionDriver {
@@ -140,40 +141,3 @@ private:
 // ============================================================
 
 extern InterceptionDriver g_Interception;
-
-// ============================================================
-// 高层输入模拟函数（内联，依赖全局 Interception 实例）
-// ============================================================
-
-/// 模拟鼠标左键点击（当前光标位置，按下→50ms→释放）
-inline void Click() {
-    g_Interception.SendLeftClick(true);
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    g_Interception.SendLeftClick(false);
-}
-
-/// 等待指定时长（秒）
-inline void WaitFor(const double Time) {
-    const int ms = static_cast<int>(Time * 1000.0);
-    if (ms > 0) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-    }
-}
-
-/// 模拟按键：按下 Key 键，保持 Time 秒后释放
-/// @param Key   按键字符（映射表: 'F'→0x21, 'A'→0x1E, 'D'→0x20）
-/// @param Time  按键保持时长（秒）
-inline void PressFor(const char Key, const double Time) {
-    static const std::unordered_map<char, unsigned short> kScanCodeMap = {
-        {'F', 0x21},  // F 键
-        {'A', 0x1E},  // A 键
-        {'D', 0x20},  // D 键
-    };
-
-    auto it = kScanCodeMap.find(Key);
-    if (it == kScanCodeMap.end()) return;  // 未知按键，静默忽略
-
-    g_Interception.SendKey(it->second, true);
-    WaitFor(Time);
-    g_Interception.SendKey(it->second, false);
-}

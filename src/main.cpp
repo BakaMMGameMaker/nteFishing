@@ -53,7 +53,7 @@ int main() {
         + std::to_string(matcher.ScreenHeight()));
     NTEAutoFishing::Log("异环钓鱼自动化工具已启动");
     NTEAutoFishing::Log("五秒后开始尝试钓鱼，请聚焦游戏窗口");
-    WaitFor(5.0);
+    NTEAutoFishing::WaitFor(5.0);
 
     Follower follower;  // 自适应指针跟随器
 
@@ -62,12 +62,12 @@ int main() {
         while (!matcher.FindTemplatesInScreenRatio(
                    {"img/ready_to_fish.png"}, 0.75, 0.75, 1.0, 1.0
                )["img/ready_to_fish.png"]) {
-            WaitFor(1.0);
+            NTEAutoFishing::WaitFor(1.0);
             NTEAutoFishing::Log("未检测到开始钓鱼按钮，等待中...");
         }
 
         // ----- 阶段 2：抛竿 + 等待鱼上钩 -----
-        PressFor('F', 0.05);       // 开始钓鱼（抛竿）
+        NTEAutoFishing::PressFor('F', 0.05);       // 开始钓鱼（抛竿）
 
         // 持续检测 fish_caught.png 判断鱼是否上钩
         // 搜索区域: 屏幕 (37.5%-62.5% 宽, 17.5%-25% 高)
@@ -90,7 +90,7 @@ int main() {
                     NTEAutoFishing::Log("鱼已上钩！");
                     break;
                 }
-                WaitFor(kCheckInterval);
+                NTEAutoFishing::WaitFor(kCheckInterval);
             }
 
             if (!bFishHooked) {
@@ -98,8 +98,8 @@ int main() {
             }
         }
 
-        PressFor('F', 0.05);       // 提竿（开始上鱼）
-        WaitFor(0.5);   // 等待上鱼 UI 出现
+        NTEAutoFishing::PressFor('F', 0.05);       // 提竿（开始上鱼）
+        NTEAutoFishing::WaitFor(0.5);   // 等待上鱼 UI 出现
 
         // ----- 阶段 3：上鱼过程 —— 指针跟随绿色矩形 -----
         // 上鱼过程中屏幕顶部有一条左右移动的绿色圆角矩形（进度条），
@@ -148,7 +148,7 @@ int main() {
                          + GreenRectRight->FoundAtX
                          + GreenRectRight->TemplateWidth) / 2;
                     FollowAction Act = follower.Follow(CenterX, CursorCenterX);
-                    if (Act.Direction != '\0') PressFor(Act.Direction, Act.Duration);
+                    if (Act.Direction != '\0') NTEAutoFishing::PressFor(Act.Direction, Act.Duration);
                     continue;
 
                 } else if (bLeft) {
@@ -157,14 +157,14 @@ int main() {
                     const int LeftRightEdgeX =
                         GreenRectLeft->FoundAtX + GreenRectLeft->TemplateWidth;
                     FollowAction Act = follower.Follow(LeftRightEdgeX, CursorCenterX);
-                    if (Act.Direction != '\0') PressFor(Act.Direction, Act.Duration);
+                    if (Act.Direction != '\0') NTEAutoFishing::PressFor(Act.Direction, Act.Duration);
                     continue;
 
                 } else if (bRight) {
                     // 仅找到右侧：跟随右侧的左边缘
                     NTEAutoFishing::Log("未检测到 green_rect_left，仅跟随右侧左边缘");
                     FollowAction Act = follower.Follow(GreenRectRight->FoundAtX, CursorCenterX);
-                    if (Act.Direction != '\0') PressFor(Act.Direction, Act.Duration);
+                    if (Act.Direction != '\0') NTEAutoFishing::PressFor(Act.Direction, Act.Duration);
                     continue;
                 }
             }
@@ -175,15 +175,15 @@ int main() {
             {
                 // 可能鱼已上钩，或脱钩/识别失败
                 bool bFishCaught = false;
-                WaitFor(2.5);
+                NTEAutoFishing::WaitFor(2.5);
 
                 // 检测"点击关闭"按钮（鱼已成功捕获）
                 while (matcher.FindTemplatesInScreenRatio(
                            {"img/click_to_close.png"}, 0.4, 0.875, 0.6, 0.95
                        )["img/click_to_close.png"]) {
                     bFishCaught = true;
-                    WaitFor(1.0);
-                    Click();  // 点击关闭结果展示界面
+                    NTEAutoFishing::WaitFor(1.0);
+                    NTEAutoFishing::Click();  // 点击关闭结果展示界面
                 }
 
                 if (bFishCaught) {
@@ -201,7 +201,7 @@ int main() {
                 NTEAutoFishing::Log("未检测到金色指针或绿色矩形左右边缘，重试中"
                     + std::to_string(Retry) + " / "
                     + std::to_string(kMaxAttempts) + "...");
-                WaitFor(1.0);
+                NTEAutoFishing::WaitFor(1.0);
                 continue;
             }
         }

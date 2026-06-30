@@ -1,4 +1,4 @@
-// 通用工具：日志输出、图像加载、屏幕尺寸获取
+// 通用工具：日志输出、图像加载、屏幕尺寸获取、高层输入模拟
 //
 // 包含 Image 结构体与命名空间 NTEAutoFishing 下的工具函数。
 
@@ -10,10 +10,15 @@
 
 #include <windows.h>
 
+#include <chrono>
 #include <iostream>
 #include <string>
+#include <thread>
+#include <unordered_map>
 
 #include <opencv2/opencv.hpp>
+
+#include "interception_driver.h"
 
 namespace NTEAutoFishing {
 
@@ -47,6 +52,39 @@ inline int GetScreenWidth() {
 /// 获取屏幕高度（物理像素），考虑 DPI 感知设置
 inline int GetScreenHeight() {
     return GetSystemMetrics(SM_CYSCREEN);
+}
+
+/// 模拟鼠标左键点击（当前光标位置，按下→50ms→释放）
+inline void Click() {
+    g_Interception.SendLeftClick(true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    g_Interception.SendLeftClick(false);
+}
+
+/// 等待指定时长（秒）
+inline void WaitFor(const double Time) {
+    const int ms = static_cast<int>(Time * 1000.0);
+    if (ms > 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+    }
+}
+
+/// 模拟按键：按下 Key 键，保持 Time 秒后释放
+/// @param Key   按键字符（映射表: 'F'→0x21, 'A'→0x1E, 'D'→0x20）
+/// @param Time  按键保持时长（秒）
+inline void PressFor(const char Key, const double Time) {
+    static const std::unordered_map<char, unsigned short> kScanCodeMap = {
+        {'F', 0x21},  // F 键
+        {'A', 0x1E},  // A 键
+        {'D', 0x20},  // D 键
+    };
+
+    auto it = kScanCodeMap.find(Key);
+    if (it == kScanCodeMap.end()) return;  // 未知按键，静默忽略
+
+    g_Interception.SendKey(it->second, true);
+    WaitFor(Time);
+    g_Interception.SendKey(it->second, false);
 }
 
 } // namespace NTEAutoFishing

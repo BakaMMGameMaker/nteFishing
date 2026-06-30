@@ -144,7 +144,7 @@ public:
 
             auto Result = ImgPosition(It->second.Mat, Haystack);
             if (Result.has_value()) {
-                NTEAutoFishing::Log("✓ " + It->second.Label
+                NTEAutoFishing::Log("✓ " + It->second.Path
                     + " 置信度=" + std::to_string(Result->Confidence)
                     + " (" + std::to_string(Result->FoundAtX) + ","
                     + std::to_string(Result->FoundAtY) + ")");
@@ -190,7 +190,7 @@ private:
     int m_ScreenH;  // 屏幕高度（像素）
 
     /// 模板图像缓存：文件路径 → 预加载的带标签图像
-    std::unordered_map<std::string, LabeledImage> m_ImageCache;
+    std::unordered_map<std::string, NTEAutoFishing::Image> m_ImageCache;
 
     /// 模板匹配置信度阈值（TM_CCOEFF_NORMED 相关系数）
     static constexpr double kMatchThreshold = 0.80;

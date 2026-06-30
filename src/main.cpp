@@ -30,11 +30,7 @@ int main() {
 
     // 检查 Interception 驱动是否可用
     if (!g_Interception.Ok()) {
-        NTEAutoFishing::Log("Interception 驱动未就绪！请执行以下步骤：");
-        NTEAutoFishing::Log("  1. 管理员身份运行 interception\\install-interception.exe /install");
-        NTEAutoFishing::Log("  2. 重启电脑");
-        NTEAutoFishing::Log("  3. 重新运行本程序（可能需要管理员权限）");
-        NTEAutoFishing::Log("按 Enter 退出...");
+        NTEAutoFishing::Log("Interception 驱动未就绪！按 Enter 退出...");
         std::cin.get();
         return 1;
     }
@@ -91,14 +87,14 @@ int main() {
                         {"img/fish_caught.png"}, 0.375, 0.175, 0.625, 0.25
                     )["img/fish_caught.png"]) {
                     bFishHooked = true;
-                    NTEAutoFishing::Log("鱼已上钩！（耗时 " + std::to_string(Elapsed).substr(0, 4) + " 秒）");
+                    NTEAutoFishing::Log("鱼已上钩！");
                     break;
                 }
                 WaitFor(kCheckInterval);
             }
 
             if (!bFishHooked) {
-                NTEAutoFishing::Log("等待鱼上钩超时（7.5 秒），强制提竿");
+                NTEAutoFishing::Log("等待鱼上钩超时，强制提竿");
             }
         }
 

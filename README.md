@@ -131,7 +131,7 @@ Interception 驱动 ← 我们的模拟输入（在此注入）
 ### 模板匹配策略
 
 - 使用 `TM_CCOEFF_NORMED`（归一化相关系数），对亮度变化不敏感
-- 构造时预加载所有模板图像到缓存（`unordered_map<路径, LabeledImage>`）
+- 构造时预加载所有模板图像到缓存（`unordered_map<路径, NTEAutoFishing::Image>`）
 - `FindTemplatesInScreenRatio` 一次截图批量匹配多张模板，返回 `unordered_map<路径, optional<FoundImg>>`
 - `green_rect_left.png` / `green_rect_right.png` 分别匹配绿色矩形的左、右边缘，联合检测可计算出完整矩形中心，同时兼容仅单侧匹配到时的降级跟随
 - 搜索区域限定在屏幕比例范围内，减少误匹配和计算量

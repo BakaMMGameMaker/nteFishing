@@ -17,5 +17,8 @@ Thumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 
+# === Claude AI 项目文档（不纳入版本管理） ===
+CLAUDE.md
+
 # === Claude AI 个人配置 ===
 .claude/

@@ -30,31 +30,31 @@ int main() {
 
     // 检查 Interception 驱动是否可用
     if (!g_Interception.Ok()) {
-        ImageMatcher::Log("Interception 驱动未就绪！请执行以下步骤：");
-        ImageMatcher::Log("  1. 管理员身份运行 interception\\install-interception.exe /install");
-        ImageMatcher::Log("  2. 重启电脑");
-        ImageMatcher::Log("  3. 重新运行本程序（可能需要管理员权限）");
-        ImageMatcher::Log("按 Enter 退出...");
+        NTEAutoFishing::Log("Interception 驱动未就绪！请执行以下步骤：");
+        NTEAutoFishing::Log("  1. 管理员身份运行 interception\\install-interception.exe /install");
+        NTEAutoFishing::Log("  2. 重启电脑");
+        NTEAutoFishing::Log("  3. 重新运行本程序（可能需要管理员权限）");
+        NTEAutoFishing::Log("按 Enter 退出...");
         std::cin.get();
         return 1;
     }
-    ImageMatcher::Log("Interception 驱动已就绪");
+    NTEAutoFishing::Log("Interception 驱动已就绪");
 
     // 预加载所有模板图像
-    const LabeledImage ReadyToFishImg  = ImageMatcher::GetImg("img/ready_to_fish.png");
-    const LabeledImage FishCaughtImg   = ImageMatcher::GetImg("img/fish_caught.png");
-    const LabeledImage ClickToCloseImg = ImageMatcher::GetImg("img/click_to_close.png");
-    const LabeledImage GreenRectLeftImg  = ImageMatcher::GetImg("img/green_rect_left.png");
-    const LabeledImage GreenRectRightImg = ImageMatcher::GetImg("img/green_rect_right.png");
-    const LabeledImage GoldCursorImg     = ImageMatcher::GetImg("img/gold_cursor.png");
+    const LabeledImage ReadyToFishImg  = NTEAutoFishing::GetImg("img/ready_to_fish.png");
+    const LabeledImage FishCaughtImg   = NTEAutoFishing::GetImg("img/fish_caught.png");
+    const LabeledImage ClickToCloseImg = NTEAutoFishing::GetImg("img/click_to_close.png");
+    const LabeledImage GreenRectLeftImg  = NTEAutoFishing::GetImg("img/green_rect_left.png");
+    const LabeledImage GreenRectRightImg = NTEAutoFishing::GetImg("img/green_rect_right.png");
+    const LabeledImage GoldCursorImg     = NTEAutoFishing::GetImg("img/gold_cursor.png");
 
     // 构造图像匹配器（捕获屏幕尺寸）
     ImageMatcher matcher(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
 
-    ImageMatcher::Log("屏幕尺寸: " + std::to_string(matcher.ScreenWidth()) + "x"
+    NTEAutoFishing::Log("屏幕尺寸: " + std::to_string(matcher.ScreenWidth()) + "x"
         + std::to_string(matcher.ScreenHeight()));
-    ImageMatcher::Log("异环钓鱼自动化工具已启动");
-    ImageMatcher::Log("五秒后开始尝试钓鱼，请聚焦游戏窗口");
+    NTEAutoFishing::Log("异环钓鱼自动化工具已启动");
+    NTEAutoFishing::Log("五秒后开始尝试钓鱼，请聚焦游戏窗口");
     WaitFor(5.0);
 
     Follower follower;  // 自适应指针跟随器
@@ -64,7 +64,7 @@ int main() {
         while (!matcher.FindTemplateInScreenRatio(ReadyToFishImg,
                                                    0.75, 0.75, 1.0, 1.0)) {
             WaitFor(1.0);
-            ImageMatcher::Log("未检测到开始钓鱼按钮，等待中...");
+            NTEAutoFishing::Log("未检测到开始钓鱼按钮，等待中...");
         }
 
         // ----- 阶段 2：抛竿 + 等待鱼上钩 -----
@@ -87,14 +87,14 @@ int main() {
                 if (matcher.FindTemplateInScreenRatio(FishCaughtImg,
                                                        0.375, 0.175, 0.625, 0.25)) {
                     bFishHooked = true;
-                    ImageMatcher::Log("鱼已上钩！（耗时 " + std::to_string(Elapsed).substr(0, 4) + " 秒）");
+                    NTEAutoFishing::Log("鱼已上钩！（耗时 " + std::to_string(Elapsed).substr(0, 4) + " 秒）");
                     break;
                 }
                 WaitFor(kCheckInterval);
             }
 
             if (!bFishHooked) {
-                ImageMatcher::Log("等待鱼上钩超时（7.5 秒），强制提竿");
+                NTEAutoFishing::Log("等待鱼上钩超时（7.5 秒），强制提竿");
             }
         }
 
@@ -128,7 +128,7 @@ int main() {
             // 如果绿色矩形也全部缺失，则落到底部 else 分支检查鱼是否已上钩
             if (!Cursor.has_value()) {
                 if (bLeft || bRight) {
-                    ImageMatcher::Log("未检测到金色指针，重试...");
+                    NTEAutoFishing::Log("未检测到金色指针，重试...");
                     continue;
                 }
             }
@@ -151,7 +151,7 @@ int main() {
 
                 } else if (bLeft) {
                     // 仅找到左侧：跟随左侧的右边缘
-                    ImageMatcher::Log("未检测到 green_rect_right，仅跟随左侧右边缘");
+                    NTEAutoFishing::Log("未检测到 green_rect_right，仅跟随左侧右边缘");
                     const int LeftRightEdgeX =
                         GreenRectLeft->FoundAtX + GreenRectLeft->TemplateWidth;
                     FollowAction Act = follower.Follow(LeftRightEdgeX, CursorCenterX);
@@ -160,7 +160,7 @@ int main() {
 
                 } else if (bRight) {
                     // 仅找到右侧：跟随右侧的左边缘
-                    ImageMatcher::Log("未检测到 green_rect_left，仅跟随右侧左边缘");
+                    NTEAutoFishing::Log("未检测到 green_rect_left，仅跟随右侧左边缘");
                     FollowAction Act = follower.Follow(GreenRectRight->FoundAtX, CursorCenterX);
                     if (Act.Direction != '\0') PressFor(Act.Direction, Act.Duration);
                     continue;
@@ -184,18 +184,18 @@ int main() {
                 }
 
                 if (bFishCaught) {
-                    ImageMatcher::Log("成功捕获一条鱼！");
+                    NTEAutoFishing::Log("成功捕获一条鱼！");
                     break;  // 回到外层循环，等待下一次钓鱼
                 }
 
                 // 鱼脱钩或识别失败
                 if (Retry >= kMaxAttempts) {
-                    ImageMatcher::Log("重试次数已耗尽，放弃本次钓鱼");
+                    NTEAutoFishing::Log("重试次数已耗尽，放弃本次钓鱼");
                     break;  // 回到外层循环，等待下一次钓鱼
                 }
 
                 ++Retry;
-                ImageMatcher::Log("未检测到金色指针或绿色矩形左右边缘，重试中"
+                NTEAutoFishing::Log("未检测到金色指针或绿色矩形左右边缘，重试中"
                     + std::to_string(Retry) + " / "
                     + std::to_string(kMaxAttempts) + "...");
                 WaitFor(1.0);

@@ -1,7 +1,6 @@
-// 图像匹配器：封装屏幕截图、OpenCV 模板匹配与相关工具函数
+// 图像匹配器：封装屏幕截图与 OpenCV 模板匹配
 //
 // 构造时捕获屏幕尺寸，之后 FindTemplateInScreenRatio 无需再传递屏幕宽高。
-// 静态工具方法（Log / GetImg / FindTemplate）可直接通过类名调用。
 
 #pragma once
 
@@ -11,11 +10,11 @@
 
 #include <windows.h>
 
-#include <iostream>
 #include <optional>
-#include <string>
 
 #include <opencv2/opencv.hpp>
+
+#include "utils.h"
 
 /// 模板匹配结果
 struct FoundImg {
@@ -26,13 +25,7 @@ struct FoundImg {
     double Confidence     = 0.0;  // 匹配置信度（TM_CCOEFF_NORMED 相关系数）
 };
 
-/// 带标签的图像，绑定图像数据与日志标签
-struct LabeledImage {
-    cv::Mat     Mat;    // 图像数据
-    std::string Label;  // 模板名称标签（用于日志）
-};
-
-/// 图像匹配器：封装屏幕截图、OpenCV 模板匹配与相关工具函数
+/// 图像匹配器：封装屏幕截图与 OpenCV 模板匹配
 class ImageMatcher {
 public:
     /// 构造时捕获屏幕尺寸
@@ -45,24 +38,8 @@ public:
     int ScreenHeight() const { return m_ScreenH; }
 
     // ============================================================
-    // 静态工具函数
+    // 静态方法
     // ============================================================
-
-    /// 输出日志信息
-    static void Log(const std::string& Message) {
-        std::cout << Message << '\n';
-    }
-
-    /// 从文件加载图像（BGR 彩色）
-    /// @param ImgPath  图像文件路径（同时用作日志标签）
-    /// @return LabeledImage；加载失败时 Mat 为空
-    static LabeledImage GetImg(const std::string& ImgPath) {
-        cv::Mat mat = cv::imread(ImgPath, cv::IMREAD_COLOR);
-        if (mat.empty()) {
-            Log("加载图像失败: " + ImgPath);
-        }
-        return {mat, ImgPath};
-    }
 
     /// 在截图中查找模板图像，输出匹配日志
     /// @param Img       带标签的模板图像（Label 用于日志）
@@ -74,7 +51,7 @@ public:
     ) {
         auto Result = ImgPosition(Img.Mat, Haystack);
         if (Result.has_value()) {
-            Log("✓ " + Img.Label + " 置信度=" + std::to_string(Result->Confidence)
+            NTEAutoFishing::Log("✓ " + Img.Label + " 置信度=" + std::to_string(Result->Confidence)
                 + " (" + std::to_string(Result->FoundAtX) + ","
                 + std::to_string(Result->FoundAtY) + ")");
         }

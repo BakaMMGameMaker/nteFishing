@@ -71,6 +71,7 @@ cd build
 nteFishing/
 ├── src/                     # 源代码
 │   ├── main.cpp             # 主程序（主循环状态机 + 业务逻辑）
+│   ├── utils.h              # 通用工具（日志 + 图像加载）
 │   ├── image_matcher.h      # 图像匹配器（屏幕截图 + OpenCV 模板匹配）
 │   ├── follower.h           # 自适应指针跟随器（死区判断 + 速度校准 + 动态按键时长）
 │   └── interception_driver.h  # Interception 驱动封装（内核 HID 注入）

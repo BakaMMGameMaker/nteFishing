@@ -69,23 +69,28 @@ cd build
 
 ```
 nteFishing/
-├── src/                  # 源代码
-│   ├── main.cpp          # 主程序（业务逻辑 + 主循环状态机）
-│   ├── follower.h        # 自适应指针跟随器（死区判断 + 速度校准 + 动态按键时长）
+├── src/                     # 源代码
+│   ├── main.cpp             # 主程序（业务逻辑 + 主循环状态机）
+│   ├── follower.h           # 自适应指针跟随器（死区判断 + 速度校准 + 动态按键时长）
 │   └── interception_driver.h  # Interception 驱动封装（内核 HID 注入）
-├── img/                  # 模板图像
+├── img/                     # 模板图像
 │   ├── ready_to_fish.png
 │   ├── green_rect_left.png
 │   ├── green_rect_right.png
 │   ├── gold_cursor.png
 │   ├── click_to_close.png
 │   └── fish_caught.png
-├── interception/         # Interception 驱动文件
-│   ├── interception.dll
-│   └── install-interception.exe
-├── CMakeLists.txt
-├── vcpkg.json            # opencv4
-└── vcpkg/                # 自包含包管理器
+├── interception/            # Interception 驱动文件
+│   ├── interception.dll     # 用户态 API DLL（运行时加载）
+│   ├── interception.lib     # 静态链接库（备用）
+│   ├── interception.h       # API 头文件
+│   └── install-interception.exe  # 驱动安装器
+├── .vscode/                 # VS Code 配置（构建任务 + 编辑器设置）
+├── CMakeLists.txt           # CMake 构建配置
+├── CMakePresets.json        # CMake 预设（编译器、工具链、vcpkg）
+├── build.sh                 # 一键构建脚本
+├── vcpkg.json               # 依赖清单 (opencv4)
+└── vcpkg/                   # 自包含包管理器
 ```
 
 ## ⚙️ 配置参数

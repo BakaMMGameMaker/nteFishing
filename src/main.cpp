@@ -4,12 +4,7 @@
 // 通过 Interception 内核驱动在 HID 层注入键盘/鼠标事件，
 // 实现钓鱼流程全自动化。
 
-// ============================================================
-// 包含头文件
-// ============================================================
-
-// 必须在任何 <windows.h> 之前定义，防止与 OpenCV 的 min/max 冲突
-// 并减少不必要头文件的引入
+// 在任何 <windows.h> 之前定义，防止与 OpenCV 的 min/max 冲突，减少不必要头文件的引入
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 
@@ -22,24 +17,13 @@
 
 #include <opencv2/opencv.hpp>
 
-// ============================================================
-// 常量定义
-// ============================================================
-
-/// 模板匹配置信度阈值 (TM_CCOEFF_NORMED 归一化相关系数)
+/// 模板匹配置信度阈值
 constexpr double kMatchThreshold = 0.80;
 
-// ============================================================
-// 全局 Interception 实例（定义）
-// ============================================================
-
+// 全局 Interception 实例
 InterceptionDriver g_Interception;
 
-// ============================================================
-// 数据结构
-// ============================================================
-
-/// 模板匹配结果：模板在屏幕区域中出现的位置与模板尺寸
+/// 模板匹配结果
 struct FoundImg {
     int    FoundAtX       = 0;    // 匹配位置 X 坐标（左上角，相对于截图区域）
     int    FoundAtY       = 0;    // 匹配位置 Y 坐标
@@ -48,18 +32,16 @@ struct FoundImg {
     double Confidence     = 0.0;  // 匹配置信度（TM_CCOEFF_NORMED 相关系数）
 };
 
-// ============================================================
-// 日志工具
-// ============================================================
+/// 带标签的图像
+struct LabeledImage {
+    cv::Mat     Mat;    // 图像数据
+    std::string Label;  // 模板名称标签（用于日志）
+};
 
-/// 输出带时间戳的日志信息
+/// 输出日志信息
 void Log(const std::string& Message) {
     std::cout << Message << '\n';
 }
-
-// ============================================================
-// 屏幕信息获取
-// ============================================================
 
 /// 获取主显示器屏幕宽度（像素）
 int GetScreenWidth() {
@@ -143,18 +125,15 @@ cv::Mat GetScreenArea(
     return result;
 }
 
-// ============================================================
-// 图像操作
-// ============================================================
-
-/// 从文件加载图像（BGR 彩色）
-/// @return cv::Mat；加载失败时返回空 Mat 并打印日志
-cv::Mat GetImg(const std::string& ImgPath) {
-    cv::Mat img = cv::imread(ImgPath, cv::IMREAD_COLOR);
-    if (img.empty()) {
+/// 从文件加载图像
+/// @param ImgPath  图像文件路径（同时用作日志标签）
+/// @return LabeledImage；加载失败时 Mat 为空
+LabeledImage GetImg(const std::string& ImgPath) {
+    cv::Mat mat = cv::imread(ImgPath, cv::IMREAD_COLOR);
+    if (mat.empty()) {
         Log("加载图像失败: " + ImgPath);
     }
-    return img;
+    return {mat, ImgPath};
 }
 
 /// 在截图中查找模板图像位置
@@ -185,23 +164,17 @@ std::optional<FoundImg> ImgPosition(const cv::Mat& Needle, const cv::Mat& Haysta
     return std::nullopt;
 }
 
-// ============================================================
-// 高级组合函数
-// ============================================================
-
 /// 在截图中查找模板图像，输出匹配日志
-/// @param Needle    模板图像（需预先加载）
+/// @param Img       带标签的模板图像（Label 用于日志）
 /// @param Haystack  被搜索的截图
-/// @param Label     模板名称（用于日志）
 /// @return 匹配结果；未找到返回 nullopt
 std::optional<FoundImg> FindTemplate(
-    const cv::Mat& Needle,
-    const cv::Mat& Haystack,
-    const std::string& Label
+    const LabeledImage& Img,
+    const cv::Mat& Haystack
 ) {
-    auto Result = ImgPosition(Needle, Haystack);
+    auto Result = ImgPosition(Img.Mat, Haystack);
     if (Result.has_value()) {
-        Log("✓ " + Label + " 置信度=" + std::to_string(Result->Confidence)
+        Log("✓ " + Img.Label + " 置信度=" + std::to_string(Result->Confidence)
             + " (" + std::to_string(Result->FoundAtX) + ","
             + std::to_string(Result->FoundAtY) + ")");
     }
@@ -209,27 +182,20 @@ std::optional<FoundImg> FindTemplate(
 }
 
 /// 在屏幕指定比例区域内截图并查找模板
-/// @param Needle    模板图像（需预先加载）
-/// @param Label     模板名称（用于日志）
+/// @param Img       带标签的模板图像
 /// @param ScreenW/H 屏幕宽高
 /// @param X1..Y2    搜索区域（屏幕比例，0.0~1.0）
 /// @return 匹配结果；未找到返回 nullopt
 std::optional<FoundImg> FindTemplateInScreenRatio(
-    const cv::Mat& Needle,
-    const std::string& Label,
+    const LabeledImage& Img,
     const int ScreenW,
     const int ScreenH,
     const double X1, const double Y1,
     const double X2, const double Y2
 ) {
     const cv::Mat Haystack = GetScreenArea(ScreenW, ScreenH, X1, Y1, X2, Y2);
-    return FindTemplate(Needle, Haystack, Label);
+    return FindTemplate(Img, Haystack);
 }
-
-
-// ============================================================
-// 主程序入口
-// ============================================================
 
 int main() {
     // 声明 DPI 感知：禁用 Windows 的坐标虚拟化，
@@ -240,7 +206,7 @@ int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
 
-    // 检查 Interception 驱动是否可用（全局对象在 main() 前已初始化）
+    // 检查 Interception 驱动是否可用
     if (!g_Interception.Ok()) {
         Log("Interception 驱动未就绪！请执行以下步骤：");
         Log("  1. 管理员身份运行 interception\\install-interception.exe /install");
@@ -252,13 +218,13 @@ int main() {
     }
     Log("Interception 驱动已就绪");
 
-    // 预加载所有模板图像（避免运行时重复读盘）
-    const cv::Mat ReadyToFishImg  = GetImg("img/ready_to_fish.png");
-    const cv::Mat FishCaughtImg   = GetImg("img/fish_caught.png");
-    const cv::Mat ClickToCloseImg = GetImg("img/click_to_close.png");
-    const cv::Mat GreenRectLeftImg  = GetImg("img/green_rect_left.png");
-    const cv::Mat GreenRectRightImg = GetImg("img/green_rect_right.png");
-    const cv::Mat GoldCursorImg     = GetImg("img/gold_cursor.png");
+    // 预加载所有模板图像
+    const LabeledImage ReadyToFishImg  = GetImg("img/ready_to_fish.png");
+    const LabeledImage FishCaughtImg   = GetImg("img/fish_caught.png");
+    const LabeledImage ClickToCloseImg = GetImg("img/click_to_close.png");
+    const LabeledImage GreenRectLeftImg  = GetImg("img/green_rect_left.png");
+    const LabeledImage GreenRectRightImg = GetImg("img/green_rect_right.png");
+    const LabeledImage GoldCursorImg     = GetImg("img/gold_cursor.png");
 
     // 获取屏幕信息
     const int InScreenWidth  = GetScreenWidth();
@@ -270,12 +236,11 @@ int main() {
     Log("五秒后开始尝试钓鱼，请聚焦游戏窗口");
     WaitFor(5.0);
 
-    Follower follower;  // 自适应指针跟随器（跨钓鱼轮次保持速度校准）
+    Follower follower;  // 自适应指针跟随器
 
     while (true) {
         // ----- 阶段 1：检测右下角钓鱼按钮 -----
         while (!FindTemplateInScreenRatio(ReadyToFishImg,
-                                           "ready_to_fish",
                                            InScreenWidth, InScreenHeight,
                                            0.75, 0.75, 1.0, 1.0)) {
             WaitFor(1.0);
@@ -300,7 +265,6 @@ int main() {
                 if (Elapsed >= kFishBiteTimeout) break;
 
                 if (FindTemplateInScreenRatio(FishCaughtImg,
-                                               "fish_caught",
                                                InScreenWidth, InScreenHeight,
                                                0.375, 0.175, 0.625, 0.25)) {
                     bFishHooked = true;
@@ -334,14 +298,11 @@ int main() {
                                                     0.30, 0.04, 0.70, 0.10);
 
             // 同一帧截图中匹配三个模板
-            const std::optional<FoundImg> GreenRectLeft =
-                FindTemplate(GreenRectLeftImg, Haystack, "green_rect_left");
-            const std::optional<FoundImg> GreenRectRight =
-                FindTemplate(GreenRectRightImg, Haystack, "green_rect_right");
-            const std::optional<FoundImg> Cursor =
-                FindTemplate(GoldCursorImg, Haystack, "gold_cursor");
+            const std::optional<FoundImg> GreenRectLeft = FindTemplate(GreenRectLeftImg, Haystack);
+            const std::optional<FoundImg> GreenRectRight = FindTemplate(GreenRectRightImg, Haystack);
+            const std::optional<FoundImg> Cursor = FindTemplate(GoldCursorImg, Haystack);
 
-            // 提前判断两侧绿色矩形是否找到（分支条件复用）
+            // 提前判断两侧绿色矩形是否找到
             const bool bLeft  = GreenRectLeft.has_value();
             const bool bRight = GreenRectRight.has_value();
 
@@ -398,7 +359,6 @@ int main() {
 
                 // 检测"点击关闭"按钮（鱼已成功捕获）
                 while (FindTemplateInScreenRatio(ClickToCloseImg,
-                                                  "click_to_close",
                                                   InScreenWidth, InScreenHeight,
                                                   0.4, 0.875, 0.6, 0.95)) {
                     bFishCaught = true;

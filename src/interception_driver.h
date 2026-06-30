@@ -3,18 +3,12 @@
 // 包含：
 //   - InterceptionDriver 类（动态加载 interception.dll）
 //   - 全局驱动实例声明
-//
-// Interception 原始类型定义（enum/struct/函数指针）封装在匿名 namespace 中，
-// 仅服务于 InterceptionDriver 内部实现，外界无需知晓。
 
 #pragma once
 
 #include <windows.h>
 
-// ============================================================
-// 匿名 namespace：Interception 驱动内部类型（匹配 interception.h）
-// ============================================================
-
+// nterception 驱动内部类型（匹配 interception.h）
 namespace {
 
 /// 按键状态
@@ -136,8 +130,5 @@ private:
     PfnInterceptionDestroyContext m_destroyFn = nullptr;
 };
 
-// ============================================================
-// 全局驱动实例（声明，定义在 main.cpp）
-// ============================================================
-
+// 全局驱动实例声明
 extern InterceptionDriver g_Interception;

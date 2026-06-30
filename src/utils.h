@@ -54,6 +54,11 @@ inline int GetScreenHeight() {
     return GetSystemMetrics(SM_CYSCREEN);
 }
 
+/// 获取图像资源目录路径
+inline std::string GetImageDir() {
+    return "img/";
+}
+
 /// 模拟鼠标左键点击（当前光标位置，按下→50ms→释放）
 inline void Click() {
     g_Interception.SendLeftClick(true);

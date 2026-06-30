@@ -16,9 +16,60 @@
 #include <unordered_map>
 #include <vector>
 
+#include <algorithm>
+#include <filesystem>
+
 #include <opencv2/opencv.hpp>
 
 #include "utils.h"
+
+namespace {
+
+/// 递归扫描图像目录，收集指定扩展名的文件
+/// @param ImgDir            图像目录路径
+/// @param IncludeExtension  要收集的文件扩展名（如 ".png"）
+/// @return 相对于 ImgDir 的文件路径列表（正斜杠）
+std::vector<std::string> ScanImageDir(
+    const std::string& ImgDir,
+    const std::string& IncludeExtension
+) {
+    namespace fs = std::filesystem;
+    std::vector<std::string> Paths;
+
+    // 规范化扩展名：确保以 . 开头并转为小写
+    std::string Ext = IncludeExtension;
+    if (!Ext.empty() && Ext[0] != '.') Ext = '.' + Ext;
+    std::transform(Ext.begin(), Ext.end(), Ext.begin(),
+        [](unsigned char c) { return std::tolower(c); });
+
+    fs::path DirPath(ImgDir);
+    std::error_code ec;
+    if (!fs::exists(DirPath, ec) || !fs::is_directory(DirPath, ec)) {
+        NTEAutoFishing::Log("⚠ 图像目录不存在或不是目录: " + ImgDir);
+        return Paths;
+    }
+
+    try {
+        for (const auto& entry : fs::recursive_directory_iterator(DirPath)) {
+            if (!entry.is_regular_file()) continue;
+
+            std::string FileExt = entry.path().extension().string();
+            std::transform(FileExt.begin(), FileExt.end(), FileExt.begin(),
+                [](unsigned char c) { return std::tolower(c); });
+
+            if (FileExt == Ext) {
+                Paths.push_back(
+                    fs::relative(entry.path(), DirPath).generic_string());
+            }
+        }
+    } catch (const std::exception& e) {
+        NTEAutoFishing::Log(std::string("⚠ 扫描图像目录异常: ") + e.what());
+    }
+
+    return Paths;
+}
+
+} // namespace
 
 /// 模板匹配结果
 struct FoundImg {
@@ -33,14 +84,16 @@ struct FoundImg {
 class ImageMatcher {
 public:
     /// 构造时捕获屏幕尺寸并预加载模板图像
-    /// @param ScreenWidth    屏幕宽度（像素）
-    /// @param ScreenHeight   屏幕高度（像素）
-    /// @param TemplatePaths  要预加载的模板图像路径列表
+    /// @param ScreenWidth   屏幕宽度（像素）
+    /// @param ScreenHeight  屏幕高度（像素）
+    /// @param ImgDir        图像资源目录路径，将递归扫描该目录下所有指定扩展名的图像
     ImageMatcher(int ScreenWidth, int ScreenHeight,
-                 const std::vector<std::string>& TemplatePaths = {})
+                 const std::string& ImgDir = NTEAutoFishing::GetImageDir())
         : m_ScreenW(ScreenWidth), m_ScreenH(ScreenHeight) {
-        for (const auto& Path : TemplatePaths) {
-            m_ImageCache.emplace(Path, NTEAutoFishing::GetImg(Path));
+        namespace fs = std::filesystem;
+        for (const auto& RelPath : ScanImageDir(ImgDir, ".png")) {
+            std::string FullPath = (fs::path(ImgDir) / RelPath).string();
+            m_ImageCache.emplace(RelPath, NTEAutoFishing::GetImg(FullPath));
         }
     }
 

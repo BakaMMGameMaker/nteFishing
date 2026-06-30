@@ -83,7 +83,7 @@ cd build
 nteFishing/
 ├── src/                      # 源代码
 │   ├── main.cpp              # 主程序（业务逻辑 + 主循环状态机）
-│   ├── follower.h            # 指针跟随器（死区判断 + 方向计算）
+│   ├── follower.h            # 自适应指针跟随器（死区判断 + 速度校准 + 动态按键时长）
 │   └── interception_driver.h # Interception 驱动封装（内核 HID 注入 + 输入模拟）
 ├── img/                      # 模板图像
 │   ├── ready_to_fish.png     # "准备钓鱼"提示
@@ -118,13 +118,13 @@ nteFishing/
 | 文件 | 职责 |
 |------|------|
 | `src/interception_driver.h` | Interception 驱动类型定义、`InterceptionDriver` 类、全局实例声明、`Click`/`WaitFor`/`PressFor` 内联函数 |
-| `src/follower.h` | 指针跟随器：`FollowAction` 结构、`Follower` 类（死区判断 + 方向计算） |
-| `src/main.cpp` | 业务逻辑：屏幕截图、OpenCV 模板匹配、主循环状态机、持续按压跟随循环 |
+| `src/follower.h` | 自适应指针跟随器：`FollowAction` 结构、`Follower` 类（死区判断 + 速度校准 + 动态按键时长计算） |
+| `src/main.cpp` | 业务逻辑：屏幕截图、OpenCV 模板匹配、主循环状态机、自适应点按跟随循环 |
 
 ### 数据结构
 - `FoundImg` — 模板匹配结果（坐标 + 模板尺寸 + 置信度），定义在 `src/main.cpp`
-- `FollowAction` — 跟随动作（方向），定义在 `src/follower.h`
-- `Follower` — 指针跟随器类（死区判断 + 方向计算），定义在 `src/follower.h`
+- `FollowAction` — 跟随动作（方向 + 按键时长），定义在 `src/follower.h`
+- `Follower` — 自适应指针跟随器类（死区判断 + 速度校准 + 动态按键时长计算），定义在 `src/follower.h`
 - `InterceptionKeyStroke` / `InterceptionMouseStroke` — HID 输入事件结构，定义在 `src/interception_driver.h`
 - `InterceptionDriver` — 动态加载 `interception.dll`，封装内核级输入注入，定义在 `src/interception_driver.h`
 
@@ -145,7 +145,7 @@ nteFishing/
 
 | 函数 | 功能 | 实现方案 |
 |------|------|----------|
-| `Follower::Follow` | 死区判断 + 方向计算 | `|TargetX - CurrentX| < 10` → `'\0'`；否则返回 `'A'`/`'D'` |
+| `Follower::Follow` | 自适应跟随：死区判断 + 速度校准 + 动态时长计算 | 死区 50px；首次用固定时长 `kCalibDuration`(0.1s) 校准速度；后续用运行平均速度估算最优按键时长，钳制在 [0.05s, 0.4s] |
 
 **驱动封装（src/interception_driver.h）**
 
@@ -160,26 +160,38 @@ nteFishing/
 ### 主循环逻辑
 1. 等待 `ready_to_fish.png` 出现（屏幕右下 75%-100% 区域）→ 按 F 开始钓鱼
 2. 持续检测 `fish_caught.png`（屏幕 37.5%-62.5% 宽, 17.5%-25% 高）判断鱼是否上钩，最长等待 7.5 秒 → 按 F 提竿
-3. 等 0.5 秒 UI 出现 → **持续按压跟随循环**（~30ms/次）：
+3. 等 0.5 秒 UI 出现 → **自适应点按跟随循环**：
    - 截图屏幕顶部区域 (30%-70% 宽, 4%-10% 高)，同一帧匹配 `green_rect_left`、`green_rect_right`、`gold_cursor`（阈值 0.80）
-   - **松手条件：** gold_cursor 缺失 **或** 两个绿色矩形都缺失 → 释放按键 → 等 2.5s → 检测 `click_to_close.png` → 点击关闭或重试
    - 两侧都找到 → 跟随完整矩形中心 = `(leftX + rightX + rightWidth) / 2`
    - 仅左侧 → 降级跟随左侧右边缘 + Log
    - 仅右侧 → 降级跟随右侧左边缘 + Log
-   - `Follower::Follow(target, cursor)` 返回方向 → 死区内松手，死区外**按住对应方向键不放**（方向变化时自动切换按键）
+   - `Follower::Follow(target, cursor)` 返回方向和按键时长 → 死区内不按键；死区外用 `PressFor` 按自适应计算的时长
+   - **松手条件：** gold_cursor 缺失且两个绿色矩形都缺失 → 等 2.5s → 检测 `click_to_close.png` → 点击关闭或重试
+   - gold_cursor 缺失但绿色矩形存在 → 瞬态识别失败，重试当前轮
    - 重试最多 5 次，超时丢弃本次钓鱼
 4. 回到步骤 1，等待下一次钓鱼
-
-> **持续按压 vs 断续点按：** 旧方案每轮 `PressFor`（按下→计算时长→松开），存在松手期间的跟随死区。新方案只在条件触发时才松手，其余时间始终按住 A 或 D，响应更快、无超调。
 
 ### 关键常量
 | 常量 | 值 | 位置 | 说明 |
 |------|-----|------|------|
-| `kMatchThreshold` | 0.80 | `main.cpp` | 模板匹配置信度阈值 |
-| `kDeadZone` | 10 | `follower.h` | 指针跟随死区（像素） |
+| `kMatchThreshold` | 0.80 | `main.cpp` | 模板匹配置信度阈值（TM_CCOEFF_NORMED） |
+| `kDeadZone` | 50 | `follower.h` | 指针跟随死区（像素） |
+| `kCalibDuration` | 0.1 | `follower.h` | 首次移动校准按键时长（秒） |
+| `kMinDuration` | 0.05 | `follower.h` | 单次按键最小时长（秒） |
+| `kMaxDuration` | 0.4 | `follower.h` | 单次按键最大时长（秒） |
 | `kFishBiteTimeout` | 7.5 | `main.cpp` | 抛竿后等待鱼上钩最长秒数 |
 | `kCheckInterval` | 0.3 | `main.cpp` | 鱼上钩检测间隔（秒） |
 | `kMaxAttempts` | 5 | `main.cpp` | 阶段 3 指针跟随失败最大重试次数 |
 | 按键 F/A/D 扫描码 | 0x21 / 0x1E / 0x20 | `interception_driver.h` | PS/2 扫描码 |
 | 鱼上钩检测区域 | (0.375,0.175)-(0.625,0.25) | `main.cpp` | 屏幕比例坐标 |
-| 跟随检测间隔 | ~0.03 | `main.cpp` | 持续按压循环间隔（秒） |
+| 跟随检测区域 | (0.30,0.04)-(0.70,0.10) | `main.cpp` | 屏幕比例坐标（宽×高） |
+
+## 修改后操作
+
+每次修改代码后，务必执行以下步骤：
+
+```bash
+cmake --build --preset default   # 编译验证
+git add -A                       # 暂存所有修改
+git commit -m "<简要描述>"       # 提交（提交信息末尾加 Co-Authored-By: Claude <noreply@anthropic.com>）
+```

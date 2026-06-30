@@ -193,5 +193,5 @@ nteFishing/
 ```bash
 cmake --build --preset default   # 编译验证
 git add -A                       # 暂存所有修改
-git commit -m "<简要描述>"       # 提交（提交信息末尾加 Co-Authored-By: Claude <noreply@anthropic.com>）
+git commit -m "<简要描述>"       # 提交
 ```

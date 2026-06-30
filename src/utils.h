@@ -1,8 +1,14 @@
-// 通用工具：日志输出、图像加载
+// 通用工具：日志输出、图像加载、屏幕尺寸获取
 //
 // 包含 Image 结构体与命名空间 NTEAutoFishing 下的工具函数。
 
 #pragma once
+
+// 在任何 <windows.h> 之前定义，防止与 OpenCV 的 min/max 冲突，减少不必要头文件的引入
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+
+#include <windows.h>
 
 #include <iostream>
 #include <string>
@@ -31,6 +37,16 @@ inline Image GetImg(const std::string& ImgPath) {
         Log("加载图像失败: " + ImgPath);
     }
     return {mat, ImgPath};
+}
+
+/// 获取屏幕宽度（物理像素），考虑 DPI 感知设置
+inline int GetScreenWidth() {
+    return GetSystemMetrics(SM_CXSCREEN);
+}
+
+/// 获取屏幕高度（物理像素），考虑 DPI 感知设置
+inline int GetScreenHeight() {
+    return GetSystemMetrics(SM_CYSCREEN);
 }
 
 } // namespace NTEAutoFishing

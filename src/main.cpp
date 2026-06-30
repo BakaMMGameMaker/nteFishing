@@ -38,7 +38,7 @@ int main() {
 
     // 构造图像匹配器（捕获屏幕尺寸 + 预加载所有模板图像）
     ImageMatcher matcher(
-        GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+        NTEAutoFishing::GetScreenWidth(), NTEAutoFishing::GetScreenHeight(),
         {
             "img/ready_to_fish.png",
             "img/fish_caught.png",

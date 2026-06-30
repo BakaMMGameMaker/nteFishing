@@ -40,16 +40,18 @@ int main() {
     }
     NTEAutoFishing::Log("Interception 驱动已就绪");
 
-    // 预加载所有模板图像
-    const LabeledImage ReadyToFishImg  = NTEAutoFishing::GetImg("img/ready_to_fish.png");
-    const LabeledImage FishCaughtImg   = NTEAutoFishing::GetImg("img/fish_caught.png");
-    const LabeledImage ClickToCloseImg = NTEAutoFishing::GetImg("img/click_to_close.png");
-    const LabeledImage GreenRectLeftImg  = NTEAutoFishing::GetImg("img/green_rect_left.png");
-    const LabeledImage GreenRectRightImg = NTEAutoFishing::GetImg("img/green_rect_right.png");
-    const LabeledImage GoldCursorImg     = NTEAutoFishing::GetImg("img/gold_cursor.png");
-
-    // 构造图像匹配器（捕获屏幕尺寸）
-    ImageMatcher matcher(GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN));
+    // 构造图像匹配器（捕获屏幕尺寸 + 预加载所有模板图像）
+    ImageMatcher matcher(
+        GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN),
+        {
+            "img/ready_to_fish.png",
+            "img/fish_caught.png",
+            "img/click_to_close.png",
+            "img/green_rect_left.png",
+            "img/green_rect_right.png",
+            "img/gold_cursor.png"
+        }
+    );
 
     NTEAutoFishing::Log("屏幕尺寸: " + std::to_string(matcher.ScreenWidth()) + "x"
         + std::to_string(matcher.ScreenHeight()));
@@ -61,8 +63,9 @@ int main() {
 
     while (true) {
         // ----- 阶段 1：检测右下角钓鱼按钮 -----
-        while (!matcher.FindTemplateInScreenRatio(ReadyToFishImg,
-                                                   0.75, 0.75, 1.0, 1.0)) {
+        while (!matcher.FindTemplatesInScreenRatio(
+                   {"img/ready_to_fish.png"}, 0.75, 0.75, 1.0, 1.0
+               )["img/ready_to_fish.png"]) {
             WaitFor(1.0);
             NTEAutoFishing::Log("未检测到开始钓鱼按钮，等待中...");
         }
@@ -84,8 +87,9 @@ int main() {
                     std::chrono::steady_clock::now() - StartTime).count();
                 if (Elapsed >= kFishBiteTimeout) break;
 
-                if (matcher.FindTemplateInScreenRatio(FishCaughtImg,
-                                                       0.375, 0.175, 0.625, 0.25)) {
+                if (matcher.FindTemplatesInScreenRatio(
+                        {"img/fish_caught.png"}, 0.375, 0.175, 0.625, 0.25
+                    )["img/fish_caught.png"]) {
                     bFishHooked = true;
                     NTEAutoFishing::Log("鱼已上钩！（耗时 " + std::to_string(Elapsed).substr(0, 4) + " 秒）");
                     break;
@@ -112,13 +116,15 @@ int main() {
         int Retry = 0;
 
         while (true) {
-            // 同一帧截图：屏幕顶部 30%-70% 宽、4%-10% 高
-            const cv::Mat Haystack = matcher.GetScreenArea(0.30, 0.04, 0.70, 0.10);
+            // 同一帧截图并批量匹配三个模板：屏幕顶部 30%-70% 宽、4%-10% 高
+            auto Results = matcher.FindTemplatesInScreenRatio(
+                {"img/green_rect_left.png", "img/green_rect_right.png", "img/gold_cursor.png"},
+                0.30, 0.04, 0.70, 0.10
+            );
 
-            // 同一帧截图中匹配三个模板
-            const std::optional<FoundImg> GreenRectLeft = ImageMatcher::FindTemplate(GreenRectLeftImg, Haystack);
-            const std::optional<FoundImg> GreenRectRight = ImageMatcher::FindTemplate(GreenRectRightImg, Haystack);
-            const std::optional<FoundImg> Cursor = ImageMatcher::FindTemplate(GoldCursorImg, Haystack);
+            const auto& GreenRectLeft  = Results["img/green_rect_left.png"];
+            const auto& GreenRectRight = Results["img/green_rect_right.png"];
+            const auto& Cursor         = Results["img/gold_cursor.png"];
 
             // 提前判断两侧绿色矩形是否找到
             const bool bLeft  = GreenRectLeft.has_value();
@@ -176,8 +182,9 @@ int main() {
                 WaitFor(2.5);
 
                 // 检测"点击关闭"按钮（鱼已成功捕获）
-                while (matcher.FindTemplateInScreenRatio(ClickToCloseImg,
-                                                          0.4, 0.875, 0.6, 0.95)) {
+                while (matcher.FindTemplatesInScreenRatio(
+                           {"img/click_to_close.png"}, 0.4, 0.875, 0.6, 0.95
+                       )["img/click_to_close.png"]) {
                     bFishCaught = true;
                     WaitFor(1.0);
                     Click();  // 点击关闭结果展示界面

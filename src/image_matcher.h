@@ -1,6 +1,7 @@
 // 图像匹配器：封装屏幕截图与 OpenCV 模板匹配
 //
-// 构造时捕获屏幕尺寸，之后 FindTemplateInScreenRatio 无需再传递屏幕宽高。
+// 构造时捕获屏幕尺寸并预加载模板图像到缓存，
+// FindTemplatesInScreenRatio 一次截图批量匹配多张模板。
 
 #pragma once
 
@@ -11,6 +12,9 @@
 #include <windows.h>
 
 #include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 #include <opencv2/opencv.hpp>
 
@@ -28,35 +32,20 @@ struct FoundImg {
 /// 图像匹配器：封装屏幕截图与 OpenCV 模板匹配
 class ImageMatcher {
 public:
-    /// 构造时捕获屏幕尺寸
-    /// @param ScreenWidth   屏幕宽度（像素）
-    /// @param ScreenHeight  屏幕高度（像素）
-    ImageMatcher(int ScreenWidth, int ScreenHeight)
-        : m_ScreenW(ScreenWidth), m_ScreenH(ScreenHeight) {}
+    /// 构造时捕获屏幕尺寸并预加载模板图像
+    /// @param ScreenWidth    屏幕宽度（像素）
+    /// @param ScreenHeight   屏幕高度（像素）
+    /// @param TemplatePaths  要预加载的模板图像路径列表
+    ImageMatcher(int ScreenWidth, int ScreenHeight,
+                 const std::vector<std::string>& TemplatePaths = {})
+        : m_ScreenW(ScreenWidth), m_ScreenH(ScreenHeight) {
+        for (const auto& Path : TemplatePaths) {
+            m_ImageCache.emplace(Path, NTEAutoFishing::GetImg(Path));
+        }
+    }
 
     int ScreenWidth()  const { return m_ScreenW; }
     int ScreenHeight() const { return m_ScreenH; }
-
-    // ============================================================
-    // 静态方法
-    // ============================================================
-
-    /// 在截图中查找模板图像，输出匹配日志
-    /// @param Img       带标签的模板图像（Label 用于日志）
-    /// @param Haystack  被搜索的截图
-    /// @return 匹配结果；未找到返回 nullopt
-    static std::optional<FoundImg> FindTemplate(
-        const LabeledImage& Img,
-        const cv::Mat& Haystack
-    ) {
-        auto Result = ImgPosition(Img.Mat, Haystack);
-        if (Result.has_value()) {
-            NTEAutoFishing::Log("✓ " + Img.Label + " 置信度=" + std::to_string(Result->Confidence)
-                + " (" + std::to_string(Result->FoundAtX) + ","
-                + std::to_string(Result->FoundAtY) + ")");
-        }
-        return Result;
-    }
 
     // ============================================================
     // 实例方法（依赖屏幕尺寸）
@@ -132,17 +121,37 @@ public:
         return result;
     }
 
-    /// 在屏幕指定比例区域内截图并查找模板
-    /// @param Img       带标签的模板图像
-    /// @param X1..Y2    搜索区域（屏幕比例，0.0~1.0）
-    /// @return 匹配结果；未找到返回 nullopt
-    std::optional<FoundImg> FindTemplateInScreenRatio(
-        const LabeledImage& Img,
+    /// 在屏幕指定比例区域内截图，批量匹配多张模板
+    /// @param TemplatePaths  模板图像路径列表（须已在构造时预加载）
+    /// @param X1..Y2         搜索区域（屏幕比例，0.0~1.0）
+    /// @return 路径 → 匹配结果映射；未预加载的路径对应 nullopt
+    std::unordered_map<std::string, std::optional<FoundImg>> FindTemplatesInScreenRatio(
+        const std::vector<std::string>& TemplatePaths,
         double X1, double Y1,
         double X2, double Y2
     ) const {
+        // 一次截图，供所有模板共用
         const cv::Mat Haystack = GetScreenArea(X1, Y1, X2, Y2);
-        return FindTemplate(Img, Haystack);
+
+        std::unordered_map<std::string, std::optional<FoundImg>> Results;
+        for (const auto& Path : TemplatePaths) {
+            auto It = m_ImageCache.find(Path);
+            if (It == m_ImageCache.end()) {
+                NTEAutoFishing::Log("⚠ 模板未预加载: " + Path);
+                Results[Path] = std::nullopt;
+                continue;
+            }
+
+            auto Result = ImgPosition(It->second.Mat, Haystack);
+            if (Result.has_value()) {
+                NTEAutoFishing::Log("✓ " + It->second.Label
+                    + " 置信度=" + std::to_string(Result->Confidence)
+                    + " (" + std::to_string(Result->FoundAtX) + ","
+                    + std::to_string(Result->FoundAtY) + ")");
+            }
+            Results[Path] = Result;
+        }
+        return Results;
     }
 
 private:
@@ -179,6 +188,9 @@ private:
 
     int m_ScreenW;  // 屏幕宽度（像素）
     int m_ScreenH;  // 屏幕高度（像素）
+
+    /// 模板图像缓存：文件路径 → 预加载的带标签图像
+    std::unordered_map<std::string, LabeledImage> m_ImageCache;
 
     /// 模板匹配置信度阈值（TM_CCOEFF_NORMED 相关系数）
     static constexpr double kMatchThreshold = 0.80;

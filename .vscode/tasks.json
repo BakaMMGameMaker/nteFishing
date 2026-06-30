@@ -1,0 +1,64 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "CMake 配置",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--preset", "default"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "E:\\LLVM\\bin;E:\\MicrosoftVisualStudio\\VC\\Tools\\MSVC\\14.50.35717\\bin\\Hostx64\\x64;C:\\Program Files\\CMake\\bin;${env:PATH}",
+          "INCLUDE": "E:\\MicrosoftVisualStudio\\VC\\Tools\\MSVC\\14.50.35717\\include;E:\\MicrosoftVisualStudio\\VC\\Tools\\MSVC\\14.50.35717\\atlmfc\\include;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\ucrt;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\winrt",
+          "LIB": "E:\\MicrosoftVisualStudio\\VC\\Tools\\MSVC\\14.50.35717\\lib\\x64;C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\um\\x64;C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\ucrt\\x64"
+        }
+      },
+      "problemMatcher": [],
+      "detail": "cmake --preset default（配置 + vcpkg 安装依赖）"
+    },
+    {
+      "label": "CMake 构建",
+      "type": "shell",
+      "command": "cmake",
+      "args": [
+        "--build", "--preset", "default"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+          "PATH": "E:\\LLVM\\bin;E:\\MicrosoftVisualStudio\\VC\\Tools\\MSVC\\14.50.35717\\bin\\Hostx64\\x64;C:\\Program Files\\CMake\\bin;${env:PATH}",
+          "INCLUDE": "E:\\MicrosoftVisualStudio\\VC\\Tools\\MSVC\\14.50.35717\\include;E:\\MicrosoftVisualStudio\\VC\\Tools\\MSVC\\14.50.35717\\atlmfc\\include;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\ucrt;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\shared;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\um;C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.26100.0\\winrt",
+          "LIB": "E:\\MicrosoftVisualStudio\\VC\\Tools\\MSVC\\14.50.35717\\lib\\x64;C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\um\\x64;C:\\Program Files (x86)\\Windows Kits\\10\\Lib\\10.0.26100.0\\ucrt\\x64"
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": {
+        "owner": "cpp",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": {
+          "regexp": "^(.+)\\((\\d+),(\\d+)\\):\\s+(warning|error):\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        }
+      },
+      "detail": "cmake --build --preset default（Ctrl+Shift+B 默认构建任务）"
+    },
+    {
+      "label": "CMake 重新配置并构建",
+      "type": "shell",
+      "dependsOn": ["CMake 配置", "CMake 构建"],
+      "dependsOrder": "sequence",
+      "problemMatcher": [],
+      "detail": "CMake 配置 + 构建（CMakeLists.txt 变更后使用）"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "MSVC + Ninja (Clang)",
+      "description": "使用 LLVM Clang + MSVC 工具链 + Ninja 构建",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+      "cacheVariables": {
+        "CMAKE_MAKE_PROGRAM": "E:/LLVM/bin/ninja.exe"
+      },
+      "environment": {
+        "PATH": "E:/LLVM/bin;E:/MicrosoftVisualStudio/VC/Tools/MSVC/14.50.35717/bin/Hostx64/x64;C:/Program Files/CMake/bin;$penv{PATH}",
+        "INCLUDE": "E:/MicrosoftVisualStudio/VC/Tools/MSVC/14.50.35717/include;E:/MicrosoftVisualStudio/VC/Tools/MSVC/14.50.35717/atlmfc/include;C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/ucrt;C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/shared;C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/um;C:/Program Files (x86)/Windows Kits/10/Include/10.0.26100.0/winrt",
+        "LIB": "E:/MicrosoftVisualStudio/VC/Tools/MSVC/14.50.35717/lib/x64;C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/um/x64;C:/Program Files (x86)/Windows Kits/10/Lib/10.0.26100.0/ucrt/x64"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "configuration": "Debug"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  // CMake Tools 扩展配置
+  "cmake.configureOnOpen": true,
+  "cmake.configureSettings": {},
+  "cmake.buildDirectory": "${workspaceFolder}/build",
+  "cmake.sourceDirectory": "${workspaceFolder}",
+  "cmake.generator": "Ninja",
+  "cmake.configureArgs": [],
+  // 使用 CMake Presets（如果 CMake Tools >= 1.20）
+  "cmake.useCMakePresets": "always",
+  // 编辑器配置
+  "editor.renderWhitespace": "all",
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": false,
+  // 终端使用 Git Bash（与 cmake 命令行环境一致）
+  "terminal.integrated.defaultProfile.windows": "Git Bash",
+  // 文件关联
+  "files.associations": {
+    "*.h": "cpp",
+    "*.tcc": "cpp"
+  }
+}

@@ -1,0 +1,21 @@
+# === 构建产物 ===
+build/
+compile_commands.json
+.cache/
+
+# === vcpkg 包管理器（自包含，通过 vcpkg.json 管理依赖） ===
+vcpkg/
+vcpkg_installed/
+
+# === IDE / 编辑器 ===
+.vs/
+.idea/
+*.user
+
+# === 系统文件 ===
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# === Claude AI 个人配置 ===
+.claude/
